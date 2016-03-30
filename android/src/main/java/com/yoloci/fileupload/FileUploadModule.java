@@ -52,6 +52,9 @@ public class FileUploadModule extends ReactContextBaseJavaModule {
         ReadableArray files = options.getArray("files");
         ReadableMap fields = options.getMap("fields");
 
+        String dataUri = options.getString("dataUri");
+        Boolean multipart = options.getBoolean("multipart");
+
 
 
         HttpURLConnection connection = null;
@@ -88,34 +91,57 @@ public class FileUploadModule extends ReactContextBaseJavaModule {
 
 
             connection.setRequestProperty("Connection", "Keep-Alive");
-            connection.setRequestProperty("Content-Type", "multipart/form-data;boundary="+boundary);
-
             outputStream = new DataOutputStream( connection.getOutputStream() );
 
-            // set fields
-            ReadableMapKeySetIterator fieldIterator = fields.keySetIterator();
-            while (fieldIterator.hasNextKey()) {
-                outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+            if (multipart) {
+              connection.setRequestProperty("Content-Type", "multipart/form-data;boundary="+boundary);
 
-                String key = fieldIterator.nextKey();
-                outputStream.writeBytes("Content-Disposition: form-data; name=\"" + key +  "\"" + lineEnd + lineEnd);
-                outputStream.writeBytes(fields.getString(key));
-                outputStream.writeBytes(lineEnd);
-            }
+              // set fields
+              ReadableMapKeySetIterator fieldIterator = fields.keySetIterator();
+              while (fieldIterator.hasNextKey()) {
+                  outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+
+                  String key = fieldIterator.nextKey();
+                  outputStream.writeBytes("Content-Disposition: form-data; name=\"" + key +  "\"" + lineEnd + lineEnd);
+                  outputStream.writeBytes(fields.getString(key));
+                  outputStream.writeBytes(lineEnd);
+              }
 
 
-            for (int i = 0; i < files.size(); i++) {
+              for (int i = 0; i < files.size(); i++) {
 
-                ReadableMap file = files.getMap(i);
-                String filename = file.getString("filename");
-                String filepath = file.getString("filepath");
-                String name = file.getString("name");
-                filepath = filepath.replace("file://", "");
-                fileInputStream = new FileInputStream(filepath);
+                  ReadableMap file = files.getMap(i);
+                  String filename = file.getString("filename");
+                  String filepath = file.getString("filepath");
+                  String name = file.getString("name");
+                  filepath = filepath.replace("file://", "");
+                  fileInputStream = new FileInputStream(filepath);
 
-                outputStream.writeBytes(twoHyphens + boundary + lineEnd);
-                outputStream.writeBytes("Content-Disposition: form-data; name=\"" + name + "\";filename=\"" + filename + "\"" + lineEnd);
-                outputStream.writeBytes(lineEnd);
+                  outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+                  outputStream.writeBytes("Content-Disposition: form-data; name=\"" + name + "\";filename=\"" + filename + "\"" + lineEnd);
+                  outputStream.writeBytes(lineEnd);
+
+                  bytesAvailable = fileInputStream.available();
+                  bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                  buffer = new byte[bufferSize];
+
+                  // Read file
+                  bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
+                  while (bytesRead > 0) {
+                      outputStream.write(buffer, 0, bufferSize);
+                      bytesAvailable = fileInputStream.available();
+                      bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                      bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                  }
+
+                  outputStream.writeBytes(lineEnd);
+              }
+
+              outputStream.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+            } else {
+                dataUri = dataUri.replace("file://", "");
+                fileInputStream = new FileInputStream(dataUri);
 
                 bytesAvailable = fileInputStream.available();
                 bufferSize = Math.min(bytesAvailable, maxBufferSize);
@@ -130,11 +156,7 @@ public class FileUploadModule extends ReactContextBaseJavaModule {
                     bufferSize = Math.min(bytesAvailable, maxBufferSize);
                     bytesRead = fileInputStream.read(buffer, 0, bufferSize);
                 }
-
-                outputStream.writeBytes(lineEnd);
             }
-
-            outputStream.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
 
             // Responses from the server (code and message)
 
