@@ -5,6 +5,8 @@
 * Support to upload multiple files at a time
 * Support to files and fields
 
+**Note on rreusser fork:** This fork adds the option to disable multipart uploads in favor of just sending data from a local URI since multipart uploads seemed to conflict with what we were doing otherwise to sign the S3 upload request.
+
 ## Getting started
 
 `npm install react-native-fileupload --save`
@@ -113,6 +115,8 @@ var FileUploadDemo = React.createClass({
     var obj = {
         uploadUrl: 'http://127.0.0.1:3000',
         method: 'POST', // default 'POST',support 'POST' and 'PUT'
+        dataUri: '/data/...', // ignored when multipart true
+        multipart: true, //
         headers: {
           'Accept': 'application/json',
         },
