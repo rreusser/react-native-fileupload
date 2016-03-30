@@ -116,7 +116,7 @@ var FileUploadDemo = React.createClass({
         uploadUrl: 'http://127.0.0.1:3000',
         method: 'POST', // default 'POST',support 'POST' and 'PUT'
         dataUri: '/data/...', // ignored when multipart true
-        multipart: true, //
+        multipart: true, // When false, `fields` and `files` are ignored (though must still be present)
         headers: {
           'Accept': 'application/json',
         },
